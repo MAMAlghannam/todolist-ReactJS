@@ -1,0 +1,226 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    
+    <!-- React for testing purposes -->
+    <script src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+
+    <!-- bootstrap -->  
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+</head>
+<body>
+
+    <!-- The main container to render components on -->
+    <div id="todo-app"></div>
+
+    <script type="text/babel">
+    /*    Form Component    */
+    class Form extends React.Component{
+
+        state = { noteTitle: "" }
+
+        //onChange to set the state values
+        onChange = (event) => this.setState({[event.target.name]: event.target.value});
+
+        onSubmit = (event) =>{
+            event.preventDefault(); //to prevent refreshing the page
+            this.props.addItem(this.state.noteTitle); //to insert the note in the array
+            this.setState({noteTitle: ""});
+        }
+
+        render(){
+            return (
+            <form action="#" onSubmit={this.onSubmit}>
+                <input 
+                type="text"
+                name="noteTitle"
+                placeholder="Type here..."
+                value={this.state.noteTitle}
+                onChange={this.onChange}
+                autocomplete="off"
+                /> {' '}
+                <button type="submit">
+                    <span class='glyphicon glyphicon-arrow-down'></span>
+                </button>
+            </form>
+            );
+        }
+    }
+
+    /*    TodoList Component    */
+    class TodoList extends React.Component{
+        state = {
+            items: [] //this array will contain all notes
+        }
+
+        editItem = (id, editedNote) =>{
+            this.setState({ items: this.state.items.map(item =>{
+                if(item.id === id)
+                    item.note = editedNote
+                return item;})
+            });
+        }
+
+        addItem = (noteTitle) =>{
+            /* I need an id for each note and they will be in ascending order, 
+            when incrementing the last id where there is no note exception will arise so that means this is the first note. */ 
+            try{
+                var idForNow = (this.state.items[this.state.items.length-1].id)+1;
+            }catch(e){
+                idForNow = 1;
+            }
+            
+            const newItem = {
+                id: idForNow,
+                note: noteTitle,
+                isDone: false
+            }
+            this.setState({ items: [...this.state.items, newItem] });
+        }
+
+        toggleItem = (id) =>{
+            this.setState({ items: this.state.items.map(item => {
+                    if(item.id === id)
+                        item.isDone = !item.isDone;
+                    return item;
+                })
+            });
+        }
+
+        deleteItem = (id) => {
+            if(confirm("Are you sure?"))
+                this.setState({ items: [...this.state.items.filter(item => item.id !== id)]});
+        }
+
+        render(){
+            if(this.state.items.length === 0){
+            return (
+            <div>
+                <Form addItem={this.addItem} />
+                <div id="myContainer">
+                    <h3 style={{borderRadius: "3px", textAlign: "center", padding: "10px", backgroundColor: "rgba(255, 255, 255, 0.8)"}}>
+                        Nothing for now :)
+                    </h3>
+                </div>
+            </div>
+            );
+            }else{
+                return(
+                <div>
+                <Form addItem={this.addItem} />
+                <div id="myContainer">
+                    {this.state.items.map(item => (
+                        <TodoItem 
+                        key={item.id} 
+                        content={item} 
+                        toggleItem={this.toggleItem}
+                        deleteItem={this.deleteItem}
+                        editItem={this.editItem}
+                        />
+                     ))}
+                </div>
+                </div>
+                );
+            }
+        }
+    }
+
+    /*    TodoItem Component    */
+    class TodoItem extends React.Component{
+        constructor(props){
+            super(props);
+            this.state = {
+                editing: false, //when editing a note I have to render it as editable note, so initially false
+                editedNote: this.props.content.note
+            }
+        }
+
+        enableEdit = () =>{ this.setState({editing: !this.state.editing}); }
+
+        onChangeEditedNote = (event) =>{ this.setState({editedNote: event.target.value}) }
+
+        saveEditedNote = () =>{
+            //when the note is same as old discard editing it
+            if(this.state.editedNote !== this.props.content.note){
+                this.props.editItem(this.props.content.id, this.state.editedNote);
+            }
+            this.setState({editedNote: this.props.content.note, editing: false})
+        }
+
+        render(){
+            const { id, note } = this.props.content;
+            if(!this.state.editing){ //render editing mode
+                return (
+                <div style={this.getStyle()[0]}>
+                    <span style={this.getStyle()[1]}>{note}</span> 
+                    <div>
+                        <button onClick={this.props.toggleItem.bind(this, id)} style={this.getStyle()[2]}>
+                            <span className="glyphicon glyphicon-ok"></span>
+                        </button>
+                    </div>
+                    <div>
+                        <button onClick={this.props.deleteItem.bind(this, id)} style={{borderStyle: "none",backgroundColor: "darkred"}}>
+                            <span className="glyphicon glyphicon-trash"></span>
+                        </button>
+                    </div>
+                    <div>
+                        <button onClick={this.enableEdit} style={this.getStyle()[3]}>
+                            <span className="glyphicon glyphicon-edit"></span>
+                        </button>
+                    </div>
+                </div>
+            );
+            }else{
+                return (
+                <div>
+                    <span><input type="text" placeholder={note} value={this.state.editedNote} onChange={this.onChangeEditedNote}/></span>
+                    <div></div>
+                    <div> {/*  */}
+                        <button onClick={this.saveEditedNote} style={{borderStyle: "none",backgroundColor: "blue"}}>
+                            <span className="glyphicon glyphicon-ok"></span>
+                        </button>
+                    </div>
+                    <div></div>
+                </div>
+                );
+            }
+        }
+
+        //styling for the note
+        getStyle = () =>{
+        if(this.props.content.isDone){
+            return [
+            {//for note container
+                backgroundColor: "rgba(255, 255, 255, 0.5)",},
+            {//for span
+                textDecoration: "line-through",},
+            {//for done btn
+                backgroundColor: "grey",borderStyle: "none"},
+            {//for edit btn
+                backgroundColor: "grey",borderStyle: "none"}
+            ]
+        }else{
+            return [
+            {//for note container
+                backgroundColor: "rgba(255, 255, 255, 0.8)",},
+            {//for span
+                textDecoration: "none",},
+            {//for done btn
+                backgroundColor: "darkgreen",borderStyle: "none"},
+            {//for edit btn
+                backgroundColor: "blue",borderStyle: "none"}
+            ]
+        }
+        }
+    }
+
+    ReactDOM.render(<TodoList />, document.getElementById("todo-app"));
+    </script>
+</body>
+</html>
